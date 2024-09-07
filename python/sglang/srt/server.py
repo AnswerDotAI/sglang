@@ -328,6 +328,7 @@ def launch_server(
             return
 
     # Launch processes
+    mp.set_start_method('spawn', force=True)
     tokenizer_manager = TokenizerManager(server_args, port_args, model_override_args)
     if server_args.chat_template:
         load_chat_template_for_openai_api(tokenizer_manager, server_args.chat_template)

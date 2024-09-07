@@ -233,6 +233,8 @@ class ServerArgs:
                 "awq_marlin",
                 "squeezellm",
                 "bitsandbytes",
+                "bitblas",
+                "torchao"
             ],
             help="The quantization method.",
         )
