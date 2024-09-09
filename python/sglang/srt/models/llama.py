@@ -59,6 +59,7 @@ class LlamaMLP(nn.Module):
             hidden_size,
             [intermediate_size] * 2,
             bias=False,
+            layer_name="gate_up_proj",
             quant_config=quant_config,
             prefix=f"{prefix}.gate_up_proj",
         )
@@ -67,6 +68,7 @@ class LlamaMLP(nn.Module):
             hidden_size,
             bias=False,
             quant_config=quant_config,
+            layer_name="down_proj",
             prefix=f"{prefix}.down_proj",
         )
         if hidden_act != "silu":
@@ -131,6 +133,7 @@ class LlamaAttention(nn.Module):
             self.total_num_kv_heads,
             bias=False,
             quant_config=quant_config,
+            layer_name="qkv_proj",
             prefix=f"{prefix}.qkv_proj",
         )
         self.o_proj = RowParallelLinear(
@@ -138,6 +141,7 @@ class LlamaAttention(nn.Module):
             hidden_size,
             bias=False,
             quant_config=quant_config,
+            layer_name="o_proj",
             prefix=f"{prefix}.o_proj",
         )
 
@@ -333,6 +337,7 @@ class LlamaForCausalLM(nn.Module):
         params_dict = self.param_dict
 
         for name, loaded_weight in weights:
+            print(f"Loading {name}")
             if "rotary_emb.inv_freq" in name or "projector" in name:
                 continue
             if "rotary_emb.cos_cached" in name or "rotary_emb.sin_cached" in name:
@@ -349,17 +354,30 @@ class LlamaForCausalLM(nn.Module):
                 # Skip loading extra bias for GPTQ models.
                 if name.endswith(".bias") and name not in params_dict:
                     continue
-                param = params_dict[name]
-                weight_loader = param.weight_loader
-                weight_loader(param, loaded_weight, shard_id)
+                if name in params_dict:
+                    param = params_dict[name]
+                    weight_loader = param.weight_loader
+                    weight_loader(param, loaded_weight, shard_id)
+                else:
+                    print(
+                        f"Found weight in the checkpoint ({name}), but not "
+                        "found the expected name in the model. The weight is "
+                        "not loaded.")
                 break
             else:
                 # Skip loading extra bias for GPTQ models.
                 if name.endswith(".bias") and name not in params_dict:
                     continue
-                param = params_dict[name]
-                weight_loader = getattr(param, "weight_loader", default_weight_loader)
-                weight_loader(param, loaded_weight)
+                if name in params_dict:
+                    param = params_dict[name]
+                    weight_loader = getattr(param, "weight_loader", default_weight_loader)
+                    weight_loader(param, loaded_weight)
+                else:
+                    print(
+                        f"Found weight in the checkpoint ({name}), but not "
+                        "found the expected name in the model. The weight is "
+                        "not loaded.")
+            print(f"Loaded {name}")
 
 
 class Phi3ForCausalLM(LlamaForCausalLM):
