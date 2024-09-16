@@ -28,6 +28,7 @@ from vllm.model_executor.layers.linear import (
     MergedColumnParallelLinear,
     QKVParallelLinear,
     RowParallelLinear,
+    ColumnParallelLinear,
 )
 from vllm.model_executor.layers.quantization.base_config import QuantizationConfig
 from vllm.model_executor.layers.rotary_embedding import get_rope
@@ -71,6 +72,15 @@ class LlamaMLP(nn.Module):
             layer_name="down_proj",
             prefix=f"{prefix}.down_proj",
         )
+        # self.down_proj = ColumnParallelLinear(
+        #     intermediate_size,
+        #     hidden_size,
+        #     bias=False,
+        #     gather_output=True,
+        #     quant_config=quant_config,
+        #     layer_name="down_proj",
+        #     prefix=f"{prefix}.down_proj",
+        # )        
         if hidden_act != "silu":
             raise ValueError(
                 f"Unsupported activation: {hidden_act}. "
@@ -144,6 +154,15 @@ class LlamaAttention(nn.Module):
             layer_name="o_proj",
             prefix=f"{prefix}.o_proj",
         )
+        # self.o_proj = ColumnParallelLinear(
+        #     self.total_num_heads * self.head_dim,
+        #     hidden_size,
+        #     bias=False,
+        #     gather_output=True,
+        #     quant_config=quant_config,
+        #     layer_name="o_proj",
+        #     prefix=f"{prefix}.o_proj",
+        # )
 
         self.rotary_emb = get_rope(
             self.head_dim,
