@@ -234,7 +234,8 @@ class ServerArgs:
                 "squeezellm",
                 "bitsandbytes",
                 "bitblas",
-                "torchao"
+                "torchao",
+                "gemlite"
             ],
             help="The quantization method.",
         )
